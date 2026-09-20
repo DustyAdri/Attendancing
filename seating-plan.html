@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Akwe Attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*  Tokens  */
+:root {
+  --bg:          #0a0d10;
+  --surface:     #111519;
+  --surface-2:   #161c21;
+  --border:      rgba(255,255,255,.08);
+
+  --text:        #e8edf1;
+  --text-2:      #7a8a96;
+  --text-3:      #4a5a66;
+
+  --present:     #34c759;
+  --present-bg:  rgba(52,199,89,.18);
+  --absent:      #ff3b30;
+  --absent-bg:   rgba(255,59,48,.18);
+  --vacant:      #3a4a56;
+  --vacant-stroke:#2d3d49;
+
+  --blue:        #0a84ff;
+  --blue-bg:     rgba(10,132,255,.15);
+  --find:        #ffd60a;
+
+  --glass-bg:    rgba(17,21,25,.84);
+  --glass-blur:  24px;
+
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   22px;
+
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease-in:  cubic-bezier(.25,.46,.45,.94);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-exit:cubic-bezier(.55,0,1,.45);
+}
+:root { color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; user-select: none;}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+/*  Layout  */
+.wrap { max-width: 1540px; margin: 0 auto; padding: 16px 14px 40px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-bottom: 14px; }
+h1 { font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+.sub { font-size: 12.5px; color: var(--text-2); margin-top: 1px; }
+.stats { display: flex; gap: 20px; margin-left: auto; font-family: var(--mono); }
+.stat b { display: block; font-size: 17px; font-weight: 600; }
+.stat span { font-size: 11px; color: var(--text-2); }
+.app { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 12px; align-items: start; }
+@media (max-width: 880px) { .app { grid-template-columns: 1fr; } }
+
+/*  Plan box  */
+.planbox { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+svg#plan { display: block; width: 100%; height: auto; max-height: 78vh; touch-action: none; cursor: grab; font-family: var(--mono); }
+svg#plan.dragging { cursor: grabbing; }
+
+/*  Seats  */
+.seat { cursor: pointer; }
+.seat rect {
+  stroke-width: 1.2;
+  pointer-events: all;   /* fill:none seats still receive clicks */
+  transition: stroke 120ms var(--ease-in), fill 120ms var(--ease-in);
+}
+.seat.s-present rect { fill: var(--present-bg); stroke: var(--present); }
+.seat.s-absent  rect { fill: var(--absent-bg);  stroke: var(--absent); }
+.seat.s-vacant  rect { fill: none; stroke: var(--vacant-stroke); }
+.seat:hover rect  { stroke: #fff; stroke-width: 1.8; }
+.seat.sel   rect  { stroke: #fff; stroke-width: 2.2; }
+.seat.hit   rect  { stroke: var(--find); stroke-width: 2.2; }
+.seat.mute        { opacity: .15; }
+
+/* Table chip elements */
+.tbl-body { fill: rgba(255,255,255,.025); stroke: var(--border); stroke-width: 1; }
+.tbl-hit  { fill: transparent; pointer-events: all; cursor: pointer; }
+.tbl-chip { fill: #1d3750; cursor: pointer; pointer-events: all; }
+.tbl-num  {
+  fill: #5b9bd5;
+  font-size: 9px; text-anchor: middle; dominant-baseline: middle; letter-spacing: .04em;
+  cursor: pointer;
+  transition: fill 120ms;
+}
+.tbl-num:hover { fill: #fff; }
+g.table.active .tbl-body { stroke: rgba(255,255,255,.4); }
+
+/*  Controls  */
+.controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 5px; }
+.controls button { font: 500 13px/1 var(--mono); color: var(--text); background: rgba(10,13,16,.88); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 11px; cursor: pointer; transition: border-color 120ms; }
+.controls button:hover { border-color: var(--text-2); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--find); outline-offset: 2px; }
+
+/*  Tooltip  */
+.tip { position: absolute; pointer-events: none; z-index: 5; opacity: 0; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 13px; min-width: 168px; max-width: 232px; box-shadow: 0 12px 32px rgba(0,0,0,.55); transition: opacity 80ms linear; }
+.tip.on { opacity: 1; }
+.tip .nm  { font-weight: 600; font-size: 13.5px; }
+.tip .mt  { font-family: var(--mono); font-size: 11px; color: var(--text-2); margin-bottom: 4px; }
+.tip .row { font-size: 12px; color: var(--text-2); }
+.tip .row b { color: var(--text); font-weight: 500; }
+
+/*  Sidebar  */
+aside { display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; }
+.card h2 { font-size: 11px; font-family: var(--mono); color: var(--text-2); margin-bottom: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+
+input[type=search], input[type=text] {
+  width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 9px 12px; font: 400 14px/1.3 var(--sans); transition: border-color 150ms;
+}
+input[type=search]:focus, input[type=text]:focus { border-color: var(--blue); outline: none; }
+input[type=search]::placeholder, input[type=text]::placeholder { color: var(--text-3); }
+
+.results { margin: 8px 0 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; overscroll-behavior: contain; }
+.results li { padding: 7px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; transition: background 100ms; }
+.results li:hover { background: rgba(255,255,255,.05); }
+.results li span { font-family: var(--mono); font-size: 11px; color: var(--text-2); white-space: nowrap; }
+.empty { color: var(--text-2); font-size: 13px; margin-top: 8px; }
+.page-bar { display:none; align-items:center; justify-content:space-between; margin-top:6px; gap:4px; }
+.page-bar.visible { display:flex; }
+.page-bar button { font:500 14px/1 var(--mono); color:var(--text-2); background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:var(--radius-sm); padding:3px 10px; cursor:pointer; transition:background 100ms,color 100ms; }
+.page-bar button:hover:not(:disabled) { background:rgba(255,255,255,.1); color:var(--text); }
+.page-bar button:disabled { opacity:.32; cursor:default; }
+.page-bar span { font:400 11px/1 var(--mono); color:var(--text-2); }
+
+/*  Legend  */
+.legend { display: flex; flex-direction: column; gap: 3px; }
+.legend button { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 7px 9px; color: var(--text); font: 400 13px/1.3 var(--sans); cursor: pointer; transition: background 100ms, border-color 100ms; }
+.legend button:hover { background: rgba(255,255,255,.04); }
+.legend button[aria-pressed=true] { border-color: var(--border); background: rgba(255,255,255,.05); }
+.legend i  { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; flex: none; }
+.legend em { margin-left: auto; font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+
+/*  Detail panel  */
+.detail .who   { font-size: 15px; font-weight: 600; }
+.detail .where { font-family: var(--mono); font-size: 11.5px; color: var(--text-2); margin: 1px 0 10px; }
+.detail dl     { display: grid; grid-template-columns: 72px 1fr; gap: 5px 10px; font-size: 13px; }
+.detail dt     { color: var(--text-2); }
+.detail dd     { margin: 0; }
+.pill  { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 99px; font-size: 11px; border: 1px solid; font-family: var(--mono); }
+.hint  { font-size: 12px; color: var(--text-2); margin-top: 10px; }
+svg.tbl { display: block; width: 100%; height: auto; margin-top: 6px; }
+
+/*  Ghost button  */
+.ghost { font: 500 12.5px/1 var(--mono); color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; transition: background 120ms, border-color 120ms; }
+.ghost:hover { background: rgba(255,255,255,.1); border-color: var(--text-2); }
+
+/*  Seat / Attendance modal  */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-in); }
+.overlay.open { opacity: 1; pointer-events: auto; }
+.modal { background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%); border: 1px solid rgba(255,255,255,.12); border-top-color: rgba(255,255,255,.2); border-radius: var(--radius-xl); box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 .5px rgba(255,255,255,.05); padding: 28px 28px 22px; width: 100%; max-width: 400px; transform: scale(.96) translateY(8px); transition: transform 250ms var(--ease-out), opacity 200ms var(--ease-out); opacity: 0; }
+.overlay.open .modal { transform: scale(1) translateY(0); opacity: 1; }
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.modal-head h3 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.modal-loc  { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10.5px; color: var(--text-2); background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px; margin-bottom: 7px; }
+.modal-close { background: rgba(255,255,255,.07); border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-2); font-size: 15px; line-height: 1; transition: background 120ms, color 120ms; flex-shrink: 0; }
+.modal-close:hover { background: rgba(255,255,255,.14); color: var(--text); }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+.modal-info { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 7px; }
+.mi-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.mi-row span { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0; }
+.mi-row b { font-weight: 500; font-size: 13px; font-family: var(--mono); text-align: right; }
+
+
+/*  Status toggle  */
+.status-badge { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--border); font-size:12.5px; font-weight:500; color:var(--text-2); }
+.status-badge.s-present { border-color:var(--present); background:var(--present-bg); color:var(--present); }
+.status-badge.s-absent  { border-color:var(--absent);  background:var(--absent-bg);  color:var(--absent); }
+.status-badge.s-vacant  { border-color:var(--vacant);  background:rgba(58,74,86,.2); color:var(--text-2); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+.btn-save   { flex: 1; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); padding: 11px; font: 600 14px/1 var(--sans); cursor: pointer; transition: opacity 150ms, transform 80ms; }
+.btn-save:hover   { opacity: .88; }
+.btn-save:active  { transform: scale(.97); }
+.btn-save:disabled { opacity: .4; cursor: default; }
+.btn-cancel { background: rgba(255,255,255,.07); color: var(--text-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 18px; font: 500 14px/1 var(--sans); cursor: pointer; transition: background 120ms, color 120ms; }
+.btn-cancel:hover { background: rgba(255,255,255,.12); color: var(--text); }
+.quick-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+.btn-signin  { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background: rgba(52,199,89,.15); color: #34c759; border: 1px solid rgba(52,199,89,.35); border-radius: var(--radius-sm); padding: 10px; font: 600 13px/1 var(--sans); cursor: pointer; transition: background 120ms; }
+.btn-signin:hover  { background: rgba(52,199,89,.25); }
+.btn-signout { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background: rgba(255,159,10,.12); color: #ff9f0a; border: 1px solid rgba(255,159,10,.3); border-radius: var(--radius-sm); padding: 10px; font: 600 13px/1 var(--sans); cursor: pointer; transition: background 120ms; }
+.btn-signout:hover { background: rgba(255,159,10,.22); }
+
+/*  Table number edit popover  */
+/*  Positioned absolutely inside .planbox  */
+.tbl-popover {
+  position: absolute;
+  z-index: 20;
+  width: 210px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.14);
+  border-top-color: rgba(255,255,255,.22);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 48px rgba(0,0,0,.55), 0 0 0 .5px rgba(255,255,255,.04);
+  padding: 14px 14px 12px;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.94) translateY(-4px);
+  transition: opacity 160ms var(--ease-in), transform 200ms var(--ease-out);
+}
+.tbl-popover.open { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); }
+.tbl-popover label { display: block; font-size: 10.5px; font-weight: 500; color: var(--text-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 7px; }
+.tbl-popover input[type=text] { font-family: var(--mono); font-size: 14px; letter-spacing: .04em; background: rgba(255,255,255,.07); padding: 8px 10px; }
+.pop-actions { display: flex; gap: 6px; margin-top: 10px; }
+.btn-pop-save {
+  flex: 1; background: var(--blue); color: #fff; border: none;
+  border-radius: var(--radius-sm); padding: 8px;
+  font: 600 12.5px/1 var(--sans); cursor: pointer; transition: opacity 120ms;
+}
+.btn-pop-save:hover { opacity: .85; }
+.btn-pop-cancel {
+  background: rgba(255,255,255,.07); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; font: 500 12.5px/1 var(--sans); cursor: pointer; transition: background 120ms;
+}
+.btn-pop-cancel:hover { background: rgba(255,255,255,.12); }
+
+/*  Toast  */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(8px); background: rgba(22,30,36,.95); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 18px; font-size: 13.5px; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 180ms, transform 250ms var(--ease-out); white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/*  Mobile  */
+@media (max-width: 600px) {
+  .wrap { padding: 10px 10px 20px; }
+
+  /* Header */
+  header.top { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+  h1 { font-size: 17px; }
+  .sub { display: none; }
+  .stats { margin-left: 0; gap: 14px; flex-wrap: wrap; }
+  .stat b { font-size: 15px; }
+
+  /* Plan */
+  svg#plan { max-height: 48vh; }
+
+  /* Sidebar: compact cards */
+  .app { gap: 8px; }
+  .card { padding: 12px; }
+  .controls button { padding: 10px 14px; font-size: 14px; }
+
+  /* Modal → bottom sheet */
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    max-width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 8px 20px 36px;
+    transform: translateY(100%);
+    transition: transform 300ms var(--ease-out), opacity 200ms var(--ease-out);
+  }
+  .modal::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,.18);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .overlay.open .modal { transform: translateY(0); opacity: 1; }
+  .modal-head { margin-bottom: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>Akwe Attendance</h1>
+    <p class="sub">Click a seat to record attendance · Click a table number to rename it</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="st-seats">—</b><span>seats</span></div>
+    <div class="stat"><b id="st-present">—</b><span>present</span></div>
+    <div class="stat"><b id="st-absent">—</b><span>absent</span></div>
+    <div class="stat"><b id="st-vacant">—</b><span>unassigned</span></div>
+    <div class="stat"><b id="st-tables">—</b><span>tables</span></div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="planbox">
+    <svg id="plan" viewBox="0 0 1520 980" preserveAspectRatio="xMidYMid meet"
+         role="img" aria-label="Interactive venue seating plan"></svg>
+    <div class="tip" id="tip" aria-hidden="true"></div>
+
+    <!-- Table rename popover — lives inside planbox for absolute positioning -->
+    <div class="tbl-popover" id="tbl-popover" role="dialog" aria-label="Rename table">
+      <label for="tbl-pop-input">Table number</label>
+      <input type="text" id="tbl-pop-input" maxlength="10" autocomplete="off">
+      <div class="pop-actions">
+        <button class="btn-pop-save"   id="tbl-pop-save">Rename</button>
+        <button class="btn-pop-cancel" id="tbl-pop-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="zout" title="Zoom out">−</button>
+      <button id="zin"  title="Zoom in">+</button>
+      <button id="zreset">Fit</button>
+    </div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <h2>Find a guest</h2>
+      <input type="search" id="q" placeholder="Name or table number" autocomplete="off">
+      <ul class="results" id="results"></ul>
+      <div class="page-bar" id="page-bar">
+        <button id="pg-prev" aria-label="Previous page">‹</button>
+        <span id="pg-info"></span>
+        <button id="pg-next" aria-label="Next page">›</button>
+      </div>
+      <p class="empty" id="qempty" hidden>No match found.</p>
+    </div>
+    <div class="card">
+      <h2>Status filter</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="card detail" id="detailPanel">
+      <h2>Selection</h2>
+      <p class="hint">Nothing selected. Click a seat or a table on the plan.</p>
+    </div>
+  </aside>
+</div>
+</div>
+
+<!--  Seat / Attendance modal  -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-loc" id="modal-loc"></div>
+        <h3 id="modal-title">Seat</h3>
+      </div>
+      <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    </div>
+
+    <form id="seat-form" autocomplete="off">
+
+      <!-- Guest info (read-only) -->
+      <div class="modal-info" id="modal-info"></div>
+
+      <!-- Quick sign-in / sign-out label -->
+      <!-- Quick sign-in / sign-out -->
+      <div class="quick-actions">
+        <button type="button" class="btn-signin"  id="btn-signin">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1.5,6.5 4.5,9.5 11,3"/></svg>
+          Sign In
+        </button>
+        <button type="button" class="btn-signout" id="btn-signout">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3"/><polyline points="9,9 12,6.5 9,4"/><line x1="12" y1="6.5" x2="5" y2="6.5"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+      <div class="form-group">
+        <input type="radio" name="modal-status" id="mst-present" value="present" style="display:none">
+        <input type="radio" name="modal-status" id="mst-absent"  value="absent"  style="display:none">
+        <input type="radio" name="modal-status" id="mst-vacant"  value="vacant"  style="display:none">
+        <div id="modal-status-badge" class="status-badge s-vacant"><span class="dot"></span><span id="modal-status-label">Vacant</span></div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn-save" id="btn-save">Save</button>
+        <button type="button" class="btn-cancel" id="modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* CONFIG */
+const API_BASE = 'api';
+
+/* SEAT GEOMETRY */
+const SEATS = [
+  {n:1,x:-42,y:0,v:true},{n:2,x:-19,y:-25},{n:3,x:0,y:-25},{n:4,x:19,y:-25},
+  {n:5,x:42,y:0,v:true}, {n:6,x:19,y:25}, {n:7,x:0,y:25}, {n:8,x:-19,y:25}
+];
+// Flat table layout 81 hardcoded tables (01–79, B1–B2; no table 80)
+const tables = [
+  //  Left main block (01–24): 4 cols × 6 rows 
+  {id:'01',x:175,y:155,zone:'left'}, {id:'02',x:285,y:155,zone:'left'},
+  {id:'03',x:395,y:155,zone:'left'}, {id:'04',x:505,y:155,zone:'left'},
+  {id:'05',x:175,y:240,zone:'left'}, {id:'06',x:285,y:240,zone:'left'},
+  {id:'07',x:395,y:240,zone:'left'}, {id:'08',x:505,y:240,zone:'left'},
+  {id:'09',x:175,y:325,zone:'left'}, {id:'10',x:285,y:325,zone:'left'},
+  {id:'11',x:395,y:325,zone:'left'}, {id:'12',x:505,y:325,zone:'left'},
+  {id:'13',x:175,y:410,zone:'left'}, {id:'14',x:285,y:410,zone:'left'},
+  {id:'15',x:395,y:410,zone:'left'}, {id:'16',x:505,y:410,zone:'left'},
+  {id:'17',x:175,y:495,zone:'left'}, {id:'18',x:285,y:495,zone:'left'},
+  {id:'19',x:395,y:495,zone:'left'}, {id:'20',x:505,y:495,zone:'left'},
+  {id:'21',x:175,y:580,zone:'left'}, {id:'22',x:285,y:580,zone:'left'},
+  {id:'23',x:395,y:580,zone:'left'}, {id:'24',x:505,y:580,zone:'left'},
+  //  Upper right (25–32): 4 cols × 2 rows 
+  {id:'25',x:1020,y:155,zone:'right'},{id:'26',x:1130,y:155,zone:'right'},
+  {id:'27',x:1240,y:155,zone:'right'},{id:'28',x:1350,y:155,zone:'right'},
+  {id:'29',x:1020,y:240,zone:'right'},{id:'30',x:1130,y:240,zone:'right'},
+  {id:'31',x:1240,y:240,zone:'right'},{id:'32',x:1350,y:240,zone:'right'},
+  //  Main right block (33–48): 4 cols × 4 rows 
+  {id:'33',x:1020,y:325,zone:'right'},{id:'34',x:1130,y:325,zone:'right'},
+  {id:'35',x:1240,y:325,zone:'right'},{id:'36',x:1350,y:325,zone:'right'},
+  {id:'37',x:1020,y:410,zone:'right'},{id:'38',x:1130,y:410,zone:'right'},
+  {id:'39',x:1240,y:410,zone:'right'},{id:'40',x:1350,y:410,zone:'right'},
+  {id:'41',x:1020,y:495,zone:'right'},{id:'42',x:1130,y:495,zone:'right'},
+  {id:'43',x:1240,y:495,zone:'right'},{id:'44',x:1350,y:495,zone:'right'},
+  {id:'45',x:1020,y:580,zone:'right'},{id:'46',x:1130,y:580,zone:'right'},
+  {id:'47',x:1240,y:580,zone:'right'},{id:'48',x:1350,y:580,zone:'right'},
+  //  Center block (49–60): 3 cols × 4 rows 
+  {id:'49',x:645,y:365,zone:'center'},{id:'50',x:755,y:365,zone:'center'},
+  {id:'51',x:865,y:365,zone:'center'},
+  {id:'52',x:645,y:450,zone:'center'},{id:'53',x:755,y:450,zone:'center'},
+  {id:'54',x:865,y:450,zone:'center'},
+  {id:'55',x:645,y:535,zone:'center'},{id:'56',x:755,y:535,zone:'center'},
+  {id:'57',x:865,y:535,zone:'center'},
+  {id:'58',x:645,y:620,zone:'center'},{id:'59',x:755,y:620,zone:'center'},
+  {id:'60',x:865,y:620,zone:'center'},
+  //  Top right pair (61–62) 
+  {id:'61',x:1020,y:70,zone:'right'}, {id:'62',x:1130,y:70,zone:'right'},
+  //  Bottom left row (63–66) 
+  {id:'63',x:175,y:665,zone:'left'}, {id:'64',x:285,y:665,zone:'left'},
+  {id:'65',x:395,y:665,zone:'left'}, {id:'66',x:505,y:665,zone:'left'},
+  //  Bottom right row (67–70) 
+  {id:'67',x:1020,y:665,zone:'right'},{id:'68',x:1130,y:665,zone:'right'},
+  {id:'69',x:1240,y:665,zone:'right'},{id:'70',x:1350,y:665,zone:'right'},
+  //  Far left column (71–74) 
+  {id:'71',x:70,y:325,zone:'left'}, {id:'72',x:70,y:410,zone:'left'},
+  {id:'73',x:70,y:495,zone:'left'}, {id:'74',x:70,y:580,zone:'left'},
+  //  Far right column (75–79) 
+  {id:'75',x:1460,y:325,zone:'right'},{id:'76',x:1460,y:410,zone:'right'},
+  {id:'77',x:1460,y:495,zone:'right'},{id:'78',x:1460,y:580,zone:'right'},
+  {id:'79',x:1460,y:665,zone:'right'},
+  //  Top right pair (81–82; no table 80) 
+  {id:'B1',x:1240,y:70,zone:'right'},{id:'B2',x:1350,y:70,zone:'right'},
+].map(t => ({...t, dbId:null, numEl:null}));
+
+/* GUEST STORE */
+const guests  = {};   // "tableId-seatNo" → guest record
+const seatEls = {};   // "tableId-seatNo" → SVG <g class="seat">
+const tableMap= {};   // tableId → {x,y}
+
+function initGuests() {
+  tables.forEach(t => SEATS.forEach(s => {
+    const key = t.id + '-' + s.n;
+    guests[key] = {key, table:t.id, seat:s.n, status:'vacant',
+                   guestName:'', guestId:null, attendanceId:null, seatId:null,
+                   idNumber:'', program:'', year:null,
+                   timestampIn:null, timestampOut:null};
+  }));
+}
+
+// Normalize table IDs for matching: strip leading zeros from purely numeric IDs
+// so '01' matches '1', '09' matches '9', but 'F1' and 'B1' are good
+function normTblId(id) { return /^\d+$/.test(id) ? String(parseInt(id, 10)) : id; }
+
+function loadFromAPI(data) {
+  data.tables.forEach(t => {
+    const tLocal = tables.find(x => normTblId(x.id) === normTblId(t.table_number));
+    if (tLocal) tLocal.dbId = t.id;
+    t.seats.forEach(s => {
+      const key = tLocal ? tLocal.id + '-' + s.seat_number : t.table_number + '-' + s.seat_number;
+      if (!guests[key]) return;
+      Object.assign(guests[key], {
+        seatId: s.seat_id, attendanceId: s.attendance_id,
+        guestName: s.guest_name || '', guestId: s.guest_id,
+        status: s.status,
+        idNumber: s.id_number || '', program: s.program || '', year: s.year || null,
+        timestampIn:  s.timestamp_in  || null,
+        timestampOut: s.timestamp_out || null,
+      });
+      applySeatStatus(key, s.status);
+    });
+  });
+  refreshStats();
+}
+
+const NS  = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('plan');
+const el  = (t, a={}) => {
+  const e = document.createElementNS(NS, t);
+  for (const k in a) e.setAttribute(k, a[k]);
+  return e;
+};
+
+
+const viewport = el('g', {id:'viewport'});
+svg.appendChild(viewport);
+
+tables.forEach(t => {
+  tableMap[t.id] = {x:t.x, y:t.y};
+  const g = el('g', {class:'table', transform:`translate(${t.x} ${t.y})`});
+  g.dataset.table = t.id;
+
+  g.appendChild(el('rect', {class:'tbl-body', x:-28, y:-13, width:56, height:26, rx:2}));
+  g.appendChild(el('rect', {class:'tbl-hit',  x:-28, y:-13, width:56, height:26}));
+  g.appendChild(el('rect', {class:'tbl-chip', x:-13, y:-7,  width:26, height:14, rx:3}));
+
+  const num = el('text', {class:'tbl-num', x:0, y:0.5});
+  num.textContent = t.id;
+  g.appendChild(num);
+  t.numEl = num; // idk if we need rename but keep incase
+
+  SEATS.forEach(s => {
+    const w = s.v ? 15 : 17, h = s.v ? 17 : 15;
+    const sg = el('g', {class:'seat s-vacant', tabindex:'0', role:'button',
+                        'aria-label':`Table ${t.id} seat ${s.n}`});
+    sg.dataset.key = t.id + '-' + s.n;
+    sg.appendChild(el('rect', {x:s.x-w/2, y:s.y-h/2, width:w, height:h, rx:4}));
+    g.appendChild(sg);
+    seatEls[sg.dataset.key] = sg;
+  });
+  viewport.appendChild(g);
+});
+
+/* Status Apply */
+function applySeatStatus(key, status) {
+  const se = seatEls[key]; if (!se) return;
+  se.classList.remove('s-present','s-absent','s-vacant');
+  se.classList.add('s-' + status);
+}
+
+/* Table Rename */
+function renameTable(oldId, newId) {
+  const t = tables.find(x => x.id === oldId);
+  if (!t) return false;
+  if (tables.some(x => x.id === newId && x !== t)) return false; // duplicate
+
+  SEATS.forEach(s => {
+    const oldKey = oldId + '-' + s.n;
+    const newKey = newId + '-' + s.n;
+    const g = guests[oldKey];
+    if (!g) return;
+    g.key = newKey; g.table = newId;
+    guests[newKey] = g;
+    delete guests[oldKey];
+    const se = seatEls[oldKey];
+    if (se) { se.dataset.key = newKey; seatEls[newKey] = se; delete seatEls[oldKey]; }
+  });
+
+  tableMap[newId] = tableMap[oldId];
+  delete tableMap[oldId];
+
+  const gEl = [...document.querySelectorAll('g.table')].find(x => x.dataset.table === oldId);
+  if (gEl) gEl.dataset.table = newId;
+  if (t.numEl) t.numEl.textContent = newId;
+
+  t.id = newId;
+  return true;
+}
+
+/* Pan & Zoom */
+let k=1, tx=0, ty=0;
+const applyVP = () => viewport.setAttribute('transform', `translate(${tx} ${ty}) scale(${k})`);
+function zoomAt(cx, cy, factor) {
+  const nk = Math.min(7, Math.max(.65, k*factor));
+  tx = cx-(cx-tx)*(nk/k); ty = cy-(cy-ty)*(nk/k); k=nk; applyVP();
+}
+function toSvg(e) {
+  const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
+  const sc=Math.min(r.width/vb.width, r.height/vb.height);
+  const ox=(r.width-vb.width*sc)/2, oy=(r.height-vb.height*sc)/2;
+  return {x:(e.clientX-r.left-ox)/sc, y:(e.clientY-r.top-oy)/sc};
+}
+function centerOn(x, y, nk) {
+  k=nk||Math.max(k,2.6); tx=760-x*k; ty=490-y*k; applyVP();
+}
+
+document.getElementById('zin').onclick    = () => zoomAt(760,490,1.35);
+document.getElementById('zout').onclick   = () => zoomAt(760,490,1/1.35);
+document.getElementById('zreset').onclick = () => { k=1; tx=0; ty=0; applyVP(); };
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const p = toSvg(e); zoomAt(p.x, p.y, e.deltaY<0?1.12:1/1.12);
+}, {passive:false});
+
+let drag=null, didMove=false;
+svg.addEventListener('pointerdown', e => {
+  drag={x:e.clientX, y:e.clientY, tx, ty, pid:e.pointerId}; didMove=false;
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const clientDx = e.clientX - drag.x, clientDy = e.clientY - drag.y;
+  if (!didMove && Math.abs(clientDx) + Math.abs(clientDy) > 8) {
+    didMove = true;
+    try { svg.setPointerCapture(drag.pid); } catch(_) {}
+    svg.classList.add('dragging');
+  }
+  if (!didMove) return; 
+  const r = svg.getBoundingClientRect(), sc = svg.viewBox.baseVal.width / r.width;
+  tx = drag.tx + clientDx * sc;
+  ty = drag.ty + clientDy * sc;
+  applyVP();
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev =>
+  svg.addEventListener(ev, () => { drag=null; svg.classList.remove('dragging'); }));
+
+/* Pinch-to-zoom */
+let pinchDist = null;
+svg.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    pinchDist = Math.hypot(dx, dy);
+    drag = null;
+  }
+}, {passive: false});
+svg.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && pinchDist !== null) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const newDist = Math.hypot(dx, dy);
+    const factor  = newDist / pinchDist;
+    pinchDist = newDist;
+    const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    zoomAt(toSvg({clientX:mx, clientY:my}).x, toSvg({clientX:mx, clientY:my}).y, factor);
+  }
+}, {passive: false});
+svg.addEventListener('touchend', () => { if (pinchDist !== null) pinchDist = null; });
+
+/* Tooltip */
+const tip     = document.getElementById('tip');
+const planbox = document.querySelector('.planbox');
+function fmtStamp(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit', hour12:true});
+}
+function tipHTML(g) {
+  const icons={present:'●',absent:'●',vacant:'○'};
+  if (g.status==='vacant') return `<div class="nm">Vacant seat</div><div class="mt">Table ${g.table} · Seat ${g.seat}</div><div class="row">Click to assign</div>`;
+  const timeRow = g.status==='present' && g.timestampIn
+    ? `<div class="row" style="margin-top:3px">In: <b>${fmtStamp(g.timestampIn)}</b></div>`
+    : g.status==='absent' && g.timestampOut
+    ? `<div class="row" style="margin-top:3px">Out: <b>${fmtStamp(g.timestampOut)}</b></div>`
+    : '';
+  return `<div class="nm">${g.guestName||'—'}</div><div class="mt">Table ${g.table} · Seat ${g.seat}</div><div class="row">${icons[g.status]} <b>${g.status.charAt(0).toUpperCase()+g.status.slice(1)}</b></div>${timeRow}`;
+}
+function posTip(e) {
+  const r=planbox.getBoundingClientRect();
+  let x=e.clientX-r.left+14, y=e.clientY-r.top+14;
+  x=Math.min(x,r.width-tip.offsetWidth-8); y=Math.min(y,r.height-tip.offsetHeight-8);
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function showTip(g,e){ tip.innerHTML=tipHTML(g); tip.classList.add('on'); posTip(e); }
+const hideTip = () => tip.classList.remove('on');
+svg.addEventListener('pointerover', e=>{const s=e.target.closest('.seat'); if(s&&!drag) showTip(guests[s.dataset.key],e);});
+svg.addEventListener('pointermove', e=>{const s=e.target.closest('.seat'); if(s&&!drag) posTip(e); else if(!s) hideTip();});
+svg.addEventListener('pointerout',  e=>{if(e.target.closest('.seat')) hideTip();});
+
+/* Priority: Table num > name > id number */
+svg.addEventListener('click', e => {
+  if (didMove) { didMove=false; return; }
+
+  // 1. Table number chip or text
+  if (e.target.closest('.tbl-num') || e.target.closest('.tbl-chip')) {
+    const tEl = e.target.closest('.table');
+    if (tEl) { openTablePopover(tEl.dataset.table, e.clientX, e.clientY); return; }
+  }
+
+  // 2. Seat
+  const s = e.target.closest('.seat');
+  if (s) { openModal(s.dataset.key); return; }
+
+  // 3. Table area
+  const t = e.target.closest('.table');
+  if (t) {
+    const already = document.querySelector('g.table.active');
+    if (already && already === t) {
+      markSelection([], null);
+      detailPanel.innerHTML = '<h2>Selection</h2><p class="hint">Nothing selected. Click a seat or a table on the plan.</p>';
+    } else {
+      renderTableDetail(t.dataset.table);
+    }
+    return;
+  }
+
+  // 4. Empty SVG space
+  markSelection([], null);
+  detailPanel.innerHTML = '<h2>Selection</h2><p class="hint">Nothing selected. Click a seat or a table on the plan.</p>';
+});
+svg.addEventListener('keydown', e => {
+  if (e.key!=='Enter'&&e.key!==' ') return;
+  const s=e.target.closest('.seat'); if(!s) return;
+  e.preventDefault(); openModal(s.dataset.key);
+});
+
+/* TABLE RENAME POPOVER */
+const tblPopover  = document.getElementById('tbl-popover');
+const tblPopInput = document.getElementById('tbl-pop-input');
+let   editingTableId = null;
+
+function openTablePopover(tableId, clientX, clientY) {
+  hideTip();
+  editingTableId  = tableId;
+  tblPopInput.value = tableId;
+
+  // Position relative to planbox
+  const r    = planbox.getBoundingClientRect();
+  const pw   = tblPopover.offsetWidth  || 210;
+  const ph   = tblPopover.offsetHeight || 100;
+  let   left = clientX - r.left - pw/2;
+  let   top  = clientY - r.top  + 14;
+  left = Math.max(8, Math.min(left, r.width  - pw - 8));
+  top  = Math.max(8, Math.min(top,  r.height - ph - 8));
+
+  tblPopover.style.left = left + 'px';
+  tblPopover.style.top  = top  + 'px';
+  tblPopover.classList.add('open');
+  requestAnimationFrame(() => { tblPopInput.select(); tblPopInput.focus(); });
+}
+
+function closeTablePopover() { tblPopover.classList.remove('open'); editingTableId=null; }
+
+document.getElementById('tbl-pop-cancel').onclick = closeTablePopover;
+
+document.getElementById('tbl-pop-save').onclick = async () => {
+  const newId = tblPopInput.value.trim();
+  if (!newId) { tblPopInput.focus(); return; }
+  if (newId === editingTableId) { closeTablePopover(); return; }
+  if (tables.some(t => t.id === newId)) {
+    showToast(`Table "${newId}" already exists`, 2500);
+    tblPopInput.select(); return;
+  }
+
+  const oldId = editingTableId;
+  const tObj  = tables.find(x => x.id === oldId);
+  renameTable(oldId, newId);
+  closeTablePopover();
+  showToast(`Table ${oldId} renamed to ${newId}`, 2000);
+  refreshStats();
+
+  if (tObj?.dbId) {
+    try {
+      const res  = await fetch(`${API_BASE}/update_table.php`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({table_db_id:tObj.dbId, table_number:newId})
+      });
+      const data = await res.json();
+      if (!data.success) { renameTable(newId, oldId); showToast('Rename failed — rolled back', 3000); }
+    } catch { renameTable(newId, oldId); showToast('Network error — rolled back', 3000); }
+  }
+};
+
+tblPopInput.addEventListener('keydown', e => {
+  if (e.key==='Enter')  { e.preventDefault(); document.getElementById('tbl-pop-save').click(); }
+  if (e.key==='Escape') closeTablePopover();
+});
+
+// Close popover on outside click
+document.addEventListener('click', e => {
+  if (!tblPopover.classList.contains('open')) return;
+  if (!tblPopover.contains(e.target) && !svg.contains(e.target)) closeTablePopover();
+});
+
+/* ATTENDANCE MODAL */
+const overlay    = document.getElementById('overlay');
+const modalTitle = document.getElementById('modal-title');
+const modalLoc   = document.getElementById('modal-loc');
+const modalInfo  = document.getElementById('modal-info');
+const seatForm   = document.getElementById('seat-form');
+const btnSave    = document.getElementById('btn-save');
+const btnSignIn       = document.getElementById('btn-signin');
+const btnSignOut      = document.getElementById('btn-signout');
+const modalStatusBadge= document.getElementById('modal-status-badge');
+const modalStatusLabel= document.getElementById('modal-status-label');
+
+const STATUS_LABELS = { present:'Present', absent:'Absent', vacant:'Vacant' };
+function setModalStatus(status) {
+  const s = status || 'vacant';
+  const radio = seatForm.querySelector(`input[value="${s}"]`);
+  if (radio) radio.checked = true;
+  modalStatusBadge.className = 'status-badge s-' + s;
+  modalStatusLabel.textContent = STATUS_LABELS[s] || 'Vacant';
+}
+
+const IC_IN  = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1.5,6.5 4.5,9.5 11,3"/></svg>`;
+const IC_OUT = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3"/><polyline points="9,9 12,6.5 9,4"/><line x1="12" y1="6.5" x2="5" y2="6.5"/></svg>`;
+
+function updateQuickBtns(g) {
+  const isVacant    = !g || g.status === 'vacant';
+  const hasSignedIn = !!g?.timestampIn;
+
+  btnSignIn.innerHTML  = hasSignedIn
+    ? `${IC_IN} Signed in ${fmtStamp(g.timestampIn)}`
+    : `${IC_IN} Sign In`;
+  btnSignOut.innerHTML = g?.timestampOut
+    ? `${IC_OUT} Signed out ${fmtStamp(g.timestampOut)}`
+    : `${IC_OUT} Sign Out`;
+
+  btnSignIn.disabled       = isVacant;
+  btnSignIn.style.opacity  = isVacant ? '0.35' : '';
+  btnSignIn.style.cursor   = isVacant ? 'not-allowed' : '';
+
+  btnSignOut.disabled      = !hasSignedIn;
+  btnSignOut.style.opacity = hasSignedIn ? '' : '0.35';
+  btnSignOut.style.cursor  = hasSignedIn ? '' : 'not-allowed';
+}
+
+async function quickAction(status) {
+  if (!activeKey) return;
+  const g    = guests[activeKey];
+  const name = g.guestName || '';
+  const gId  = g.guestId || null;
+  const prev = {...g};
+  const now  = new Date().toISOString();
+
+  g.guestName = name; g.status = status; g.guestId = gId;
+  if (status === 'present') g.timestampIn  = g.timestampIn  || now;
+  if (status === 'absent')  g.timestampOut = g.timestampOut || now;
+
+  setModalStatus(status);
+
+  updateQuickBtns(g);
+  applySeatStatus(activeKey, status);
+  refreshStats();
+  renderDetailForKey(activeKey);
+  showToast(status === 'present' ? `Signed in ${fmtStamp(g.timestampIn)}` : `Signed out ${fmtStamp(g.timestampOut)}`, 2000);
+
+  try {
+    const res  = await fetch(`${API_BASE}/update_seat.php`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({seat_id:g.seatId, guest_id:gId, guest_name:name, status})
+    });
+    const data = await res.json();
+    if (!data.success) {
+      Object.assign(guests[activeKey], prev);
+      applySeatStatus(activeKey, prev.status); refreshStats();
+      updateQuickBtns(prev);
+      showToast('Save failed — rolled back', 3000);
+    } else {
+      guests[activeKey].timestampIn  = data.timestamp_in  ?? null;
+      guests[activeKey].timestampOut = data.timestamp_out ?? null;
+      updateQuickBtns(guests[activeKey]);
+      renderDetailForKey(activeKey);
+    }
+  } catch {
+    Object.assign(guests[activeKey], prev);
+    applySeatStatus(activeKey, prev.status); refreshStats();
+    updateQuickBtns(prev);
+    showToast('Network error — rolled back', 3000);
+  }
+}
+
+btnSignIn.onclick  = () => quickAction('present');
+btnSignOut.onclick = () => quickAction('absent');
+
+let activeKey = null;
+
+function openModal(key) {
+  const g = guests[key];
+  activeKey = key;
+
+  modalTitle.textContent = g.guestName || 'Vacant Seat';
+  modalLoc.textContent   = `Table ${g.table} · Seat ${g.seat}`;
+
+  modalInfo.innerHTML =
+    `<div class="mi-row"><span>ID number</span><b>${g.idNumber || '—'}</b></div>` +
+    `<div class="mi-row"><span>Program</span><b>${g.program || '—'}</b></div>` +
+    `<div class="mi-row"><span>Year</span><b>${g.year ? `Year ${g.year}` : '—'}</b></div>`;
+
+  setModalStatus(g.status || 'vacant');
+  updateQuickBtns(g);
+  overlay.classList.add('open');
+}
+
+function closeModal() {
+  overlay.classList.remove('open');
+  activeKey=null;
+  btnSave.disabled=false; btnSave.textContent='Save';
+}
+
+document.getElementById('modal-close').onclick  = closeModal;
+document.getElementById('modal-cancel').onclick = closeModal;
+overlay.addEventListener('click', e => { if (e.target===overlay) closeModal(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeModal(); closeTablePopover(); }
+});
+
+seatForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!activeKey) return;
+  const g         = guests[activeKey];
+  const name      = g.guestName || '';
+  const status    = seatForm.querySelector('input[name="modal-status"]:checked')?.value || 'vacant';
+  const gId       = g.guestId || null;
+  const prev      = {...g};
+  // Optimistic update
+  const now = new Date().toISOString();
+  g.status=status; g.guestId=gId;
+  if (status==='present') { g.timestampIn  = g.timestampIn  || now; }
+  if (status==='absent')  { g.timestampOut = g.timestampOut || now; }
+  if (status==='vacant')  { g.timestampIn  = null; g.timestampOut = null; }
+  applySeatStatus(activeKey, status);
+  refreshStats();
+  renderDetailForKey(activeKey);
+  closeModal();
+  showToast('Saved', 1600);
+
+  try {
+    const res  = await fetch(`${API_BASE}/update_seat.php`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({seat_id:g.seatId, guest_id:gId, guest_name:name, status})
+    });
+    const data = await res.json();
+    if (!data.success) {
+      Object.assign(guests[activeKey],prev); applySeatStatus(activeKey,prev.status);
+      refreshStats(); showToast('Save failed — rolled back', 3000);
+    } else {
+      guests[activeKey].attendanceId  = data.attendance_id  ?? null;
+      guests[activeKey].timestampIn   = data.timestamp_in   ?? null;
+      guests[activeKey].timestampOut  = data.timestamp_out  ?? null;
+    }
+  } catch {
+    Object.assign(guests[activeKey],prev); applySeatStatus(activeKey,prev.status);
+    refreshStats(); showToast('Network error — rolled back', 3000);
+  }
+});
+
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* DETAIL PANEL */
+const detailPanel = document.getElementById('detailPanel');
+
+function renderDetailForKey(key) {
+  const g = guests[key];
+  const c = g.status==='present' ? 'var(--present)' : g.status==='absent' ? 'var(--absent)' : 'var(--text-2)';
+  const tsRows = g.status !== 'vacant'
+    ? `<dt>Sign-in</dt>  <dd style="font-family:var(--mono);font-size:12px">${fmtStamp(g.timestampIn)}</dd>
+       <dt>Sign-out</dt> <dd style="font-family:var(--mono);font-size:12px">${fmtStamp(g.timestampOut)}</dd>`
+    : '';
+  const studentInfo = g.guestName && (g.program || g.idNumber)
+    ? `<p class="where" style="margin-top:2px;font-size:11px;color:var(--text-2)">${[g.program, g.year?'Yr '+g.year:'', g.idNumber].filter(Boolean).join(' · ')}</p>`
+    : '';
+  detailPanel.innerHTML = `<h2>Selection</h2>
+    <p class="who">${g.guestName||'<span style="color:var(--text-2)">Vacant</span>'}</p>
+    ${studentInfo}
+    <p class="where">Table ${g.table} · Seat ${g.seat}</p>
+    <dl>
+      <dt>Status</dt>
+      <dd><span class="pill" style="color:${c};border-color:${c}"><span class="dot" style="background:${c}"></span>${g.status.charAt(0).toUpperCase()+g.status.slice(1)}</span></dd>
+      ${tsRows}
+    </dl>
+    <p class="hint">
+      <button class="ghost" onclick="openModal('${g.key}')">Edit</button>&nbsp;
+      <button class="ghost" onclick="renderTableDetail('${g.table}')">Table ${g.table}</button>
+    </p>`;
+}
+
+function markSelection(keys, tableId) {
+  document.querySelectorAll('.seat.sel').forEach(x=>x.classList.remove('sel'));
+  document.querySelectorAll('g.table.active').forEach(x=>x.classList.remove('active'));
+  keys.forEach(kk => seatEls[kk]?.classList.add('sel'));
+  if (tableId) {
+    const t=[...document.querySelectorAll('g.table')].find(x=>x.dataset.table===tableId);
+    t?.classList.add('active');
+  }
+}
+
+function renderTableDetail(id) {
+  const t       = tableMap[id];
+  const people  = SEATS.map(s => guests[id+'-'+s.n]);
+  markSelection(people.map(p=>p.key), id);
+  centerOn(t.x, t.y, Math.max(k,2.2));
+
+  const pN=people.filter(p=>p.status==='present').length;
+  const aN=people.filter(p=>p.status==='absent').length;
+  const vN=people.filter(p=>p.status==='vacant').length;
+
+  const chairs = SEATS.map(s => {
+    const g=guests[id+'-'+s.n];
+    const w=s.v?52:60, h=s.v?60:52;
+    const X=210+s.x*3.1, Y=130+s.y*2.6;
+    const label=g.status==='vacant'?'—':(g.guestName||'?').split(' ')[0];
+    const c=g.status==='present'?'var(--present)':g.status==='absent'?'var(--absent)':'var(--vacant-stroke)';
+    const ts = g.status==='present' && g.timestampIn
+      ? fmtStamp(g.timestampIn)
+      : g.status==='absent' && g.timestampOut
+      ? fmtStamp(g.timestampOut) : '';
+    return `<g class="dchair" data-key="${g.key}" tabindex="0" style="cursor:pointer">
+      <rect x="${X-w/2}" y="${Y-h/2}" width="${w}" height="${h}" rx="12"
+            fill="${g.status!=='vacant'?'rgba(255,255,255,.04)':'none'}" stroke="${c}" stroke-width="1.6"/>
+      <text x="${X}" y="${Y-9}"  text-anchor="middle" font-size="14" font-family="var(--mono)" fill="${c}">${s.n}</text>
+      <text x="${X}" y="${Y+7}"  text-anchor="middle" font-size="10" fill="var(--text-2)">${label}</text>
+      ${ts ? `<text x="${X}" y="${Y+20}" text-anchor="middle" font-size="8.5" font-family="var(--mono)" fill="var(--text-3)">${ts}</text>` : ''}
+    </g>`;
+  }).join('');
+
+  detailPanel.innerHTML = `<h2>Table ${id}</h2>
+    <p class="who">${pN} present · ${aN} absent · ${vN} vacant</p>
+    <p class="where">Click a chair to edit · <button class="ghost" style="padding:4px 8px;font-size:11px" onclick="openTablePopover('${id}',0,0)" aria-label="Rename table">Rename</button></p>
+    <svg class="tbl" viewBox="0 0 420 260">
+      <rect x="120" y="90" width="180" height="80" rx="4" fill="rgba(255,255,255,.025)" stroke="var(--border)"/>
+      <text x="210" y="134" text-anchor="middle" font-size="13" font-family="var(--mono)" fill="var(--text-2)">${id}</text>
+      ${chairs}
+    </svg>
+    <p class="hint">
+      <button class="ghost" onclick="markAllTable('${id}','present')" style="margin-right:6px">All Present</button>
+      <button class="ghost" onclick="markAllTable('${id}','absent')">All Absent</button>
+    </p>`;
+
+  detailPanel.querySelectorAll('.dchair').forEach(ch => {
+    ch.addEventListener('click', () => openModal(ch.dataset.key));
+  });
+}
+
+/* Override openTablePopover called from detail panel (no clientX/Y known) */
+const _openPopoverOrig = openTablePopover;
+function openTablePopover(tableId, clientX, clientY) {
+  if (!clientX && !clientY) {
+    // Called from sidebar: centre the popover in the planbox
+    const r = planbox.getBoundingClientRect();
+    clientX = r.left + r.width/2;
+    clientY = r.top  + r.height/2;
+  }
+  editingTableId    = tableId;
+  tblPopInput.value = tableId;
+  const pw   = tblPopover.offsetWidth  || 210;
+  const ph   = tblPopover.offsetHeight || 100;
+  const r    = planbox.getBoundingClientRect();
+  let   left = clientX - r.left - pw/2;
+  let   top  = clientY - r.top  + 14;
+  left = Math.max(8, Math.min(left, r.width -pw-8));
+  top  = Math.max(8, Math.min(top,  r.height-ph-8));
+  tblPopover.style.left = left+'px';
+  tblPopover.style.top  = top +'px';
+  tblPopover.classList.add('open');
+  requestAnimationFrame(() => { tblPopInput.select(); tblPopInput.focus(); });
+}
+
+function markAllTable(id, status) {
+  SEATS.forEach(s => { const key=id+'-'+s.n; guests[key].status=status; applySeatStatus(key,status); });
+  refreshStats(); renderTableDetail(id);
+  SEATS.forEach(s => {
+    const g=guests[id+'-'+s.n]; if(!g.seatId) return;
+    fetch(`${API_BASE}/update_seat.php`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({seat_id:g.seatId,guest_name:g.guestName,status})}).catch(()=>{});
+  });
+  showToast(`Table ${id} → ${status}`, 1800);
+}
+
+/* GUEST OR SEAT SEARCH */
+const qInput  = document.getElementById('q');
+const results = document.getElementById('results');
+const qempty  = document.getElementById('qempty');
+const pageBar = document.getElementById('page-bar');
+const pgInfo  = document.getElementById('pg-info');
+const pgPrev  = document.getElementById('pg-prev');
+const pgNext  = document.getElementById('pg-next');
+
+const PAGE_SIZE = 20;
+let searchHits = [], searchPage = 0;
+
+function renderSearchPage() {
+  results.innerHTML = '';
+  const start = searchPage * PAGE_SIZE;
+  const slice = searchHits.slice(start, start + PAGE_SIZE);
+  slice.forEach(g => {
+    const li = document.createElement('li');
+    const ts = g.status==='present' && g.timestampIn
+      ? ` · ${fmtStamp(g.timestampIn)}`
+      : g.status==='absent' && g.timestampOut
+      ? ` · out ${fmtStamp(g.timestampOut)}` : '';
+    li.innerHTML = `<b style="font-weight:500">${g.guestName||'Vacant'}</b><span>${g.idNumber||'T'+g.table+'·S'+g.seat}${ts}</span>`;
+    li.onclick = () => {
+      const t = tableMap[g.table], s = SEATS.find(s => s.n === g.seat);
+      centerOn(t.x + s.x, t.y + s.y, 3.2);
+      markSelection([g.key], g.table);
+      renderDetailForKey(g.key);
+      openModal(g.key);
+    };
+    results.appendChild(li);
+  });
+  const total = searchHits.length, pages = Math.ceil(total / PAGE_SIZE);
+  if (pages > 1) {
+    pgInfo.textContent = `${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`;
+    pgPrev.disabled = searchPage === 0;
+    pgNext.disabled = searchPage >= pages - 1;
+    pageBar.classList.add('visible');
+  } else {
+    pageBar.classList.remove('visible');
+  }
+}
+
+pgPrev.onclick = () => { if (searchPage > 0) { searchPage--; renderSearchPage(); results.scrollTop = 0; } };
+pgNext.onclick = () => {
+  if (searchPage < Math.ceil(searchHits.length / PAGE_SIZE) - 1) { searchPage++; renderSearchPage(); results.scrollTop = 0; }
+};
+
+qInput.addEventListener('input', () => {
+  const v = qInput.value.trim().toLowerCase();
+  document.querySelectorAll('.seat.hit').forEach(s => s.classList.remove('hit'));
+  results.innerHTML = ''; qempty.hidden = true; pageBar.classList.remove('visible'); searchPage = 0;
+  if (v.length < 2) { searchHits = []; return; }
+  searchHits = Object.values(guests).filter(g =>
+    (g.guestName && g.guestName.toLowerCase().includes(v)) ||
+    (g.idNumber  && g.idNumber.includes(v)) ||
+    ('table ' + g.table).toLowerCase().includes(v) || g.table.toLowerCase() === v);
+  searchHits.forEach(g => seatEls[g.key]?.classList.add('hit'));
+  if (!searchHits.length) { qempty.hidden = false; return; }
+  renderSearchPage();
+});
+
+/* LEGEND FILTER */
+const STATUS_DEF = {
+  present:{label:'Present',   c:'var(--present)'},
+  absent: {label:'Absent',    c:'var(--absent)'},
+  vacant: {label:'Unassigned',c:'var(--text-2)'},
+};
+const legendEl = document.getElementById('legend');
+let filter = null;
+
+function buildLegend(){
+  legendEl.innerHTML='';
+  const counts={};
+  Object.values(guests).forEach(g=>counts[g.status]=(counts[g.status]||0)+1);
+  Object.entries(STATUS_DEF).forEach(([key,s])=>{
+    const b=document.createElement('button');
+    b.setAttribute('aria-pressed','false');
+    b.innerHTML=`<i style="border-color:${s.c};background:${key==='vacant'?'transparent':s.c+'33'}"></i>${s.label}<em>${counts[key]||0}</em>`;
+    b.onclick=()=>{
+      filter=(filter===key)?null:key;
+      [...legendEl.children].forEach(c=>c.setAttribute('aria-pressed',String(c===b&&filter===key)));
+      Object.values(guests).forEach(g=>seatEls[g.key]?.classList.toggle('mute',!!filter&&g.status!==filter));
+    };
+    legendEl.appendChild(b);
+  });
+}
+
+/* STATS */
+function refreshStats(){
+  const counts={present:0,absent:0,vacant:0};
+  Object.values(guests).forEach(g=>counts[g.status]++);
+  document.getElementById('st-seats').textContent   = Object.keys(guests).length;
+  document.getElementById('st-present').textContent = counts.present;
+  document.getElementById('st-absent').textContent  = counts.absent;
+  document.getElementById('st-vacant').textContent  = counts.vacant;
+  document.getElementById('st-tables').textContent  = tables.length;
+  buildLegend();
+}
+
+/* TOAST */
+let toastTimer;
+function showToast(msg,dur=2000){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+/* INIT */
+async function init(){
+  initGuests(); applyVP(); refreshStats();
+
+  try{
+    const res  = await fetch(`${API_BASE}/get_seating.php`);
+    const data = await res.json();
+    if (data.success){ loadFromAPI(data); }
+    else showToast('Could not load seating data',3000);
+  }catch{ showToast('Network error — could not load seating data',3000); }
+}
+init();
+</script>
+</body>
+</html>
