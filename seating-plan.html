@@ -391,6 +391,11 @@ const SEATS = [
   {n:1,x:-42,y:0,v:true},{n:2,x:-19,y:-25},{n:3,x:0,y:-25},{n:4,x:19,y:-25},
   {n:5,x:42,y:0,v:true}, {n:6,x:19,y:25}, {n:7,x:0,y:25}, {n:8,x:-19,y:25}
 ];
+// Special case: table 71 seats 9 (9th chair sits above the top row)
+const SEAT_9 = {n:9,x:0,y:-42};
+const EXTRA_SEATS = {'71':[SEAT_9]};
+// Seats belonging to a table id (falls back to the standard 8)
+const seatsOf = id => tables.find(x => x.id === id)?.seats || SEATS;
 // Flat table layout 81 hardcoded tables (01–79, B1–B2; no table 80)
 const tables = [
   //  Left main block (01–24): 4 cols × 6 rows 
@@ -446,7 +451,7 @@ const tables = [
   {id:'79',x:1460,y:665,zone:'right'},
   //  Top right pair (81–82; no table 80) 
   {id:'B1',x:1240,y:70,zone:'right'},{id:'B2',x:1350,y:70,zone:'right'},
-].map(t => ({...t, dbId:null, numEl:null}));
+].map(t => ({...t, dbId:null, numEl:null, seats:SEATS.concat(EXTRA_SEATS[String(parseInt(t.id,10))]||[])}));
 
 /* GUEST STORE */
 const guests  = {};   // "tableId-seatNo" → guest record
@@ -454,7 +459,7 @@ const seatEls = {};   // "tableId-seatNo" → SVG <g class="seat">
 const tableMap= {};   // tableId → {x,y}
 
 function initGuests() {
-  tables.forEach(t => SEATS.forEach(s => {
+  tables.forEach(t => t.seats.forEach(s => {
     const key = t.id + '-' + s.n;
     guests[key] = {key, table:t.id, seat:s.n, status:'vacant',
                    guestName:'', guestId:null, attendanceId:null, seatId:null,
@@ -514,7 +519,7 @@ tables.forEach(t => {
   g.appendChild(num);
   t.numEl = num; // idk if we need rename but keep incase
 
-  SEATS.forEach(s => {
+  t.seats.forEach(s => {
     const w = s.v ? 15 : 17, h = s.v ? 17 : 15;
     const sg = el('g', {class:'seat s-vacant', tabindex:'0', role:'button',
                         'aria-label':`Table ${t.id} seat ${s.n}`});
@@ -539,7 +544,7 @@ function renameTable(oldId, newId) {
   if (!t) return false;
   if (tables.some(x => x.id === newId && x !== t)) return false; // duplicate
 
-  SEATS.forEach(s => {
+  t.seats.forEach(s => {
     const oldKey = oldId + '-' + s.n;
     const newKey = newId + '-' + s.n;
     const g = guests[oldKey];
@@ -976,7 +981,7 @@ function markSelection(keys, tableId) {
 
 function renderTableDetail(id) {
   const t       = tableMap[id];
-  const people  = SEATS.map(s => guests[id+'-'+s.n]);
+  const people  = seatsOf(id).map(s => guests[id+'-'+s.n]);
   markSelection(people.map(p=>p.key), id);
   centerOn(t.x, t.y, Math.max(k,2.2));
 
@@ -984,7 +989,7 @@ function renderTableDetail(id) {
   const aN=people.filter(p=>p.status==='absent').length;
   const vN=people.filter(p=>p.status==='vacant').length;
 
-  const chairs = SEATS.map(s => {
+  const chairs = seatsOf(id).map(s => {
     const g=guests[id+'-'+s.n];
     const w=s.v?52:60, h=s.v?60:52;
     const X=210+s.x*3.1, Y=130+s.y*2.6;
@@ -1006,7 +1011,7 @@ function renderTableDetail(id) {
   detailPanel.innerHTML = `<h2>Table ${id}</h2>
     <p class="who">${pN} present · ${aN} absent · ${vN} vacant</p>
     <p class="where">Click a chair to edit · <button class="ghost" style="padding:4px 8px;font-size:11px" onclick="openTablePopover('${id}',0,0)" aria-label="Rename table">Rename</button></p>
-    <svg class="tbl" viewBox="0 0 420 260">
+    <svg class="tbl" viewBox="${seatsOf(id).length > 8 ? '0 -50 420 310' : '0 0 420 260'}">
       <rect x="120" y="90" width="180" height="80" rx="4" fill="rgba(255,255,255,.025)" stroke="var(--border)"/>
       <text x="210" y="134" text-anchor="middle" font-size="13" font-family="var(--mono)" fill="var(--text-2)">${id}</text>
       ${chairs}
@@ -1046,9 +1051,9 @@ function openTablePopover(tableId, clientX, clientY) {
 }
 
 function markAllTable(id, status) {
-  SEATS.forEach(s => { const key=id+'-'+s.n; guests[key].status=status; applySeatStatus(key,status); });
+  seatsOf(id).forEach(s => { const key=id+'-'+s.n; guests[key].status=status; applySeatStatus(key,status); });
   refreshStats(); renderTableDetail(id);
-  SEATS.forEach(s => {
+  seatsOf(id).forEach(s => {
     const g=guests[id+'-'+s.n]; if(!g.seatId) return;
     fetch(`${API_BASE}/update_seat.php`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({seat_id:g.seatId,guest_name:g.guestName,status})}).catch(()=>{});
@@ -1080,7 +1085,7 @@ function renderSearchPage() {
       ? ` · out ${fmtStamp(g.timestampOut)}` : '';
     li.innerHTML = `<b style="font-weight:500">${g.guestName||'Vacant'}</b><span>${g.idNumber||'T'+g.table+'·S'+g.seat}${ts}</span>`;
     li.onclick = () => {
-      const t = tableMap[g.table], s = SEATS.find(s => s.n === g.seat);
+      const t = tableMap[g.table], s = seatsOf(g.table).find(s => s.n === g.seat);
       centerOn(t.x + s.x, t.y + s.y, 3.2);
       markSelection([g.key], g.table);
       renderDetailForKey(g.key);

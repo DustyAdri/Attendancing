@@ -1,5 +1,4 @@
 SET FOREIGN_KEY_CHECKS = 0;
-SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- 1. TABLES  (physical round tables in the venue)
 CREATE TABLE `tables` (
@@ -14,7 +13,7 @@ CREATE TABLE `tables` (
     UNIQUE KEY `uq_table_number` (`table_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. SEATS  (individual chairs around each table)
+-- SEATS  
 CREATE TABLE `seats` (
     `id`          INT             NOT NULL AUTO_INCREMENT,
     `table_id`    INT             NOT NULL,
@@ -25,22 +24,24 @@ CREATE TABLE `seats` (
         FOREIGN KEY (`table_id`) REFERENCES `tables`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. GUESTS  (students)
+-- GUESTS  (students)
 CREATE TABLE `guests` (
     `id`           INT UNSIGNED     NOT NULL AUTO_INCREMENT,
     `first_name`   VARCHAR(100)     NOT NULL,
     `last_name`    VARCHAR(100)     NOT NULL,
     `id_number`    VARCHAR(20)      NOT NULL,
-    `program`      VARCHAR(100)     NOT NULL,
-    `year`         TINYINT UNSIGNED NOT NULL DEFAULT 1,
-    `table_number` VARCHAR(10)      DEFAULT NULL,
-    `seat_number`  TINYINT UNSIGNED DEFAULT NULL,
+    `email`        VARCHAR(150)     DEFAULT NULL,
+    `program`      VARCHAR(100)     DEFAULT NULL,
+    `year`         TINYINT UNSIGNED DEFAULT NULL,
+    `table_number` VARCHAR(10)      DEFAULT NULL,   -- table code (e.g. '12', 'B1', 'CISCO')
+    `seat_number`  VARCHAR(10)      DEFAULT NULL,   -- seat code (e.g. '3', 'CISCO')
     `created_at`   TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_id_number` (`id_number`)
+    UNIQUE KEY `uk_id_number` (`id_number`),
+    UNIQUE KEY `uk_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. ATTENDANCE
+-- ATTENDANCE
 CREATE TABLE `attendance` (
     `id`            INT             NOT NULL AUTO_INCREMENT,
     `guest_id`      INT UNSIGNED,

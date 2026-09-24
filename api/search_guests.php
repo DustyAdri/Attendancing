@@ -50,10 +50,11 @@ try {
             'name'           => $row['name'],
             'id_number'      => $row['id_number'],
             'program'        => $row['program'],
-            'year'           => (int)$row['year'],
+            'year'           => $row['year'] !== null ? (int)$row['year'] : null,
             'current_status' => $row['current_status'],
             'current_table'  => $row['current_table'],
-            'current_seat'   => $row['current_seat'] !== null ? (int)$row['current_seat'] : null,
+            'current_seat'   => $row['current_seat'] === null ? null
+                                : (ctype_digit((string)$row['current_seat']) ? (int)$row['current_seat'] : $row['current_seat']),
         ];
     }, $stmt->fetchAll());
 
