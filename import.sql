@@ -1,4 +1,4 @@
--- 81 tables · 651 seats · 536 guests from Akwe_stuff.xlsx · 528 seated
+-- 81 tables · 651 seats · 539 guests from Akwe_stuff.xlsx · 534 seated
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -912,8 +912,8 @@ INSERT INTO `guests` (`id`,`first_name`,`last_name`,`id_number`,`email`,`program
 (53,'Joshua','Collamat','18400095','18400095@usc.edu.ph','BS IS',3,'7','1'),
 (54,'Myles Kim','Oncines','23104513','23104513@usc.edu.ph','BS CS',3,'7','2'),
 (55,'Nythan John','Rivera','24105198','24105198@usc.edu.ph','BS CS',3,'7','3'),
-(56,'Shiori','Morisaka','24101855','24101855@usc.edu.ph','BS IS',3,'7','5'),
-(57,'Cyprianne Jean','Murillo','24102254','24102254@usc.edu.ph','BS CS',2,'7','6'),
+(56,'Shiori','Morisaka','24101855','24101855@usc.edu.ph','BS IS',3,'7','4'),
+(57,'Cyprianne Jean','Murillo','24102254','24102254@usc.edu.ph','BS CS',2,'7','5'),
 (58,'Zyleika Vashty','Invento','19103448','19103448@usc.edu.ph','BS IS',3,'7','6'),
 (59,'Vince Matthew','Estrera','23200084','23200084@usc.edu.ph','BS IS',3,'7','7'),
 (60,'Kenny Lee','De Lara','23100917','23100917@usc.edu.ph','BS IS',3,'7','8'),
@@ -1073,9 +1073,9 @@ INSERT INTO `guests` (`id`,`first_name`,`last_name`,`id_number`,`email`,`program
 (214,'Raven','Ventures','25100421','25100421@usc.edu.ph','BS IT',2,'27','8'),
 (215,'Rina Andreana','Hernandez','25104333','25104333@usc.edu.ph','BS CS',2,'28','1'),
 (216,'Jann Denise','Señido','19020145','19020145@usc.edu.ph','BS CS',2,'28','2'),
-(217,'Natalie','Cabillada','25100256','25100256@usc.edu.ph','BS CS',2,'28','2'),
-(218,'Rae Lejane','Barcelona','23103431','23103431@usc.edu.ph','BS CS',1,'28','3'),
-(219,'Terrence','Baguio','24105875','24105875@usc.edu.ph','BS CS',2,'28','6'),
+(217,'Natalie','Cabillada','25100256','25100256@usc.edu.ph','BS CS',2,'28','3'),
+(218,'Rae Lejane','Barcelona','23103431','23103431@usc.edu.ph','BS CS',1,'28','4'),
+(219,'Terrence','Baguio','24105875','24105875@usc.edu.ph','BS CS',2,'28','5'),
 (220,'Emilton','Bontia','23101134','23101134@usc.edu.ph','BS CS',1,'28','6'),
 (221,'Janiz Stefanie','Martem','23800093','23800093@usc.edu.ph','BS CS',1,'28','7'),
 (222,'Summer','Entor','25100477','25100477@usc.edu.ph','BS IT',2,'28','8'),
@@ -1086,16 +1086,16 @@ INSERT INTO `guests` (`id`,`first_name`,`last_name`,`id_number`,`email`,`program
 (227,'Dave','Valmonte','24102441','24102441@usc.edu.ph','BS IT',2,'29','5'),
 (228,'Althea Mariel','Cinco','24103576','24103576@usc.edu.ph','BS IT',3,'29','6'),
 (229,'Aesha Jhude','Diez','22103508','22103508@usc.edu.ph','BS IT',2,'29','7'),
-(230,'James Cameron','Abello','11820033','11820033@usc.edu.ph','BS IT',3,'29','8'),
+(230,'James Cameron','Abello','11820033','11820033@usc.edu.ph','BS IT',3,'30','3'),
 (231,'Simon Raphael','Iway','24101107','24101107@usc.edu.ph','BS IT',2,'30','1'),
 (232,'Roy Dennis','Patalinghug','11820085','11820085@usc.edu.ph','BS IT',3,'30','2'),
-(233,'John Michael','Hoban','24100093','24100093@usc.edu.ph','BS IT',2,'30','3'),
+(233,'John Michael','Hoban','24100093','24100093@usc.edu.ph','BS IT',2,'30','5'),
 (234,'Joseff Vin Leo','Paclibar','22105203','22105203@usc.edu.ph','BS IT',3,'30','4'),
-(235,'Eduardo','Patalinjug','22104362','22104362@usc.edu.ph','BS IT',2,'30','5'),
+(235,'Eduardo','Patalinjug','22104362','22104362@usc.edu.ph','BS IT',2,'29','8'),
 (236,'Shaun Matthew','Garcia','18010609','18010609@usc.edu.ph','BS IT',3,'30','6'),
 (237,'Dev','Arriesgado','24104201','24104201@usc.edu.ph','BS IT',2,'30','7'),
 (238,'Tricia','Gubaton','24103591','24103591@usc.edu.ph','BS IT',3,'30','8'),
-(239,'Jake Harvey','Despabeladero','07500972','07500972@usc.edu.ph','BS CS',3,'31','2'),
+(239,'Jake Harvey','Despabeladero','07500972','07500972@usc.edu.ph','BS CS',3,'31','1'),
 (240,'Matthew Angelo','Lumayno','21400179','21400179@usc.edu.ph','BS CS',3,'31','2'),
 (241,'Jeane Eritch','Diputado','24104316','24104316@usc.edu.ph','BS CS',3,'31','3'),
 (242,'Atasha Denise','Santiago','23100678','23100678@usc.edu.ph','BS CS',1,'31','4'),
@@ -1392,7 +1392,10 @@ INSERT INTO `guests` (`id`,`first_name`,`last_name`,`id_number`,`email`,`program
 (533,'Adryan Gabriel','Correa','23101139','23101139@usc.edu.ph',NULL,NULL,'B2','2'),
 (534,'Gaea Jeanne','Paronia','23104981','23104981@usc.edu.ph',NULL,NULL,'B2','3'),
 (535,'Lyle Matthew','Almedilla','22105353','22105353@usc.edu.ph',NULL,NULL,'B2','4'),
-(536,'Jenina Elaine','Bontilao','25100614','25100614@usc.edu.ph',NULL,NULL,'B2','5');
+(536,'Jenina Elaine','Bontilao','25100614','25100614@usc.edu.ph',NULL,NULL,'B2','5'),
+(537,'Daichi','Yamato','NOID0001',NULL,NULL,NULL,'67','7'),
+(538,'Travis Jeuran','Osorio','31200389','31200389@usc.edu.ph','BS IS',1,'CISCO','CISCO'),
+(539,'Venice Claire','Selgas','25100425','25100425@usc.edu.ph','BS IT',2,'CISCO','CISCO');
 
 -- ATTENDANCE 
 INSERT INTO `attendance` (`guest_id`,`seat_id`,`guest_name`,`status`,`timestamp_in`,`timestamp_out`) VALUES
@@ -1448,8 +1451,8 @@ INSERT INTO `attendance` (`guest_id`,`seat_id`,`guest_name`,`status`,`timestamp_
 (53,49,'Joshua Collamat','absent',NULL,NULL),
 (54,50,'Myles Kim Oncines','absent',NULL,NULL),
 (55,51,'Nythan John Rivera','absent',NULL,NULL),
-(56,53,'Shiori Morisaka','absent',NULL,NULL),
-(57,54,'Cyprianne Jean Murillo','absent',NULL,NULL),
+(56,52,'Shiori Morisaka','absent',NULL,NULL),
+(57,53,'Cyprianne Jean Murillo','absent',NULL,NULL),
 (59,55,'Vince Matthew Estrera','absent',NULL,NULL),
 (60,56,'Kenny Lee De Lara','absent',NULL,NULL),
 (61,57,'Nathan Braxton Candelario Ares','absent',NULL,NULL),
@@ -1608,8 +1611,8 @@ INSERT INTO `attendance` (`guest_id`,`seat_id`,`guest_name`,`status`,`timestamp_
 (214,216,'Raven Ventures','absent',NULL,NULL),
 (215,217,'Rina Andreana Hernandez','absent',NULL,NULL),
 (216,218,'Jann Denise Señido','absent',NULL,NULL),
-(218,219,'Rae Lejane Barcelona','absent',NULL,NULL),
-(219,222,'Terrence Baguio','absent',NULL,NULL),
+(218,220,'Rae Lejane Barcelona','absent',NULL,NULL),
+(219,221,'Terrence Baguio','absent',NULL,NULL),
 (221,223,'Janiz Stefanie Martem','absent',NULL,NULL),
 (222,224,'Summer Entor','absent',NULL,NULL),
 (223,225,'Denise Bocado','absent',NULL,NULL),
@@ -1619,16 +1622,16 @@ INSERT INTO `attendance` (`guest_id`,`seat_id`,`guest_name`,`status`,`timestamp_
 (227,229,'Dave Valmonte','absent',NULL,NULL),
 (228,230,'Althea Mariel Cinco','absent',NULL,NULL),
 (229,231,'Aesha Jhude Diez','absent',NULL,NULL),
-(230,232,'James Cameron Abello','absent',NULL,NULL),
+(230,235,'James Cameron Abello','absent',NULL,NULL),
 (231,233,'Simon Raphael Iway','absent',NULL,NULL),
 (232,234,'Roy Dennis Patalinghug','absent',NULL,NULL),
-(233,235,'John Michael Hoban','absent',NULL,NULL),
+(233,237,'John Michael Hoban','absent',NULL,NULL),
 (234,236,'Joseff Vin Leo Paclibar','absent',NULL,NULL),
-(235,237,'Eduardo Patalinjug','absent',NULL,NULL),
+(235,232,'Eduardo Patalinjug','absent',NULL,NULL),
 (236,238,'Shaun Matthew Garcia','absent',NULL,NULL),
 (237,239,'Dev Arriesgado','absent',NULL,NULL),
 (238,240,'Tricia Gubaton','absent',NULL,NULL),
-(239,242,'Jake Harvey Despabeladero','absent',NULL,NULL),
+(239,241,'Jake Harvey Despabeladero','absent',NULL,NULL),
 (241,243,'Jeane Eritch Diputado','absent',NULL,NULL),
 (242,244,'Atasha Denise Santiago','absent',NULL,NULL),
 (243,245,'Rayge Stanley Ruelan','absent',NULL,NULL),
@@ -1924,6 +1927,11 @@ INSERT INTO `attendance` (`guest_id`,`seat_id`,`guest_name`,`status`,`timestamp_
 (533,642,'Adryan Gabriel Correa','absent',NULL,NULL),
 (534,643,'Gaea Jeanne Paronia','absent',NULL,NULL),
 (535,644,'Lyle Matthew Almedilla','absent',NULL,NULL),
-(536,645,'Jenina Elaine Bontilao','absent',NULL,NULL);
+(536,645,'Jenina Elaine Bontilao','absent',NULL,NULL),
+(537,535,'Daichi Yamato','absent',NULL,NULL),
+(58,54,'Zyleika Vashty Invento','absent',NULL,NULL),
+(217,219,'Natalie Cabillada','absent',NULL,NULL),
+(220,222,'Emilton Bontia','absent',NULL,NULL),
+(240,242,'Matthew Angelo Lumayno','absent',NULL,NULL);
 
 SET FOREIGN_KEY_CHECKS = 1;
